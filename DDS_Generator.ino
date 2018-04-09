@@ -1,4 +1,6 @@
-// 3 phase PWM sine
+// 3 Phase PWM sine
+// (c) 2018 Norawit Nangsue
+// Fixed comments from
 // (c) 2016 C. Masenas
 // Modified from original DDS from: 
 // KHM 2009 /  Martin Nawrath
@@ -64,8 +66,8 @@ void changeFreq(float _freq){
 } 
 
 //******************************************************************
-// timer2 setup
-// set prscaler to 1,  fast PWM
+// Timer2 setup
+// set prscaler to 1,  Phase Correct PWM
 void Setup_timer2() {
 
 // Timer2 Clock Prescaler to : 1
