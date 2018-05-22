@@ -47,12 +47,12 @@ int lastMode      = THREE_PHASE;
 
 volatile float scalingFactor = 1;
 
-volatile unsigned int X;
-volatile unsigned int IX;
-volatile unsigned int Y;
-volatile unsigned int IY;
-volatile unsigned int Z;
-volatile unsigned int IZ;
+volatile unsigned short X;
+volatile unsigned short IX;
+volatile unsigned short Y;
+volatile unsigned short IY;
+volatile unsigned short Z;
+volatile unsigned short IZ;
 
 int inputFreq = 50;
 
@@ -161,6 +161,12 @@ void loop(){
   Serial.println(inputFreq);
   Serial.print("Mode : ");
   Serial.println(mode);
+  Serial.print("X, Y, Z : ");
+  Serial.print(X);
+  Serial.print(", ");
+  Serial.print(Y);
+  Serial.print(", ");
+  Serial.println(Z);
   delay(50);
 }
 
