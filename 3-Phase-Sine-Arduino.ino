@@ -20,7 +20,6 @@ PROGMEM const unsigned short SINE_VALUE[]  = {0,25,50,75,100,125,150,175,200,224
 #define FREQ_PIN          7
 #define CURR_PIN          0
 
-
 //Digital Pin
 #define LATCHUP_PIN       16
 #define X_PIN             5
@@ -47,6 +46,13 @@ int lastMode      = THREE_PHASE;
 
 
 volatile float scalingFactor = 1;
+
+volatile unsigned int X;
+volatile unsigned int IX;
+volatile unsigned int Y;
+volatile unsigned int IY;
+volatile unsigned int Z;
+volatile unsigned int IZ;
 
 int inputFreq = 50;
 
@@ -153,6 +159,8 @@ void loop(){
   Serial.println(scalingFactor);
   Serial.print("Frequency : ");
   Serial.println(inputFreq);
+  Serial.print("Mode : ");
+  Serial.println(mode);
   delay(50);
 }
 
@@ -290,28 +298,34 @@ ISR(TIMER5_OVF_vect) {
 
   //Check whether it's 0 or not before multiplication which could reduce the code computing complexity. 
   phaseX = sigma >> 24; 
-  int valueX = pgm_read_word_near(SINE_VALUE + phaseX);
-  int X = (valueX == 0) ? 0 : valueX * scalingFactor;
-  
-  phaseIX = phaseX + 128;
-  int valueIX = pgm_read_word_near(SINE_VALUE + phaseIX);
-  int IX = (valueIX == 0) ? 0 : valueIX * scalingFactor;
+  X = pgm_read_word_near(SINE_VALUE + phaseX);
+  if(X != 0)
+  {
+    X = X * scalingFactor;
+    IX = 0;
+  }else{//X == 0
+    IX = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseX + 128);
+  }
   
   phaseY = phaseX + 85 ;
-  int valueY = pgm_read_word_near(SINE_VALUE + phaseY);
-  int Y = (valueY == 0) ? 0 : valueY * scalingFactor;
-  
-  phaseIY = phaseY + 128;
-  int valueIY = pgm_read_word_near(SINE_VALUE + phaseIY);
-  int IY = (valueIY == 0) ? 0 : valueIY * scalingFactor;
+  Y = pgm_read_word_near(SINE_VALUE + phaseY);
+  if(Y != 0)
+  {
+    Y = Y * scalingFactor;
+    IY = 0;
+  }else{//Y == 0
+    IY = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseY + 128);
+  }
   
   phaseZ = phaseX + 170;
-  int valueZ = pgm_read_word_near(SINE_VALUE + phaseZ);
-  int Z = (valueZ == 0) ? 0 : valueZ * scalingFactor;
-  
-  phaseIZ = phaseZ + 128;
-  int valueIZ = pgm_read_word_near(SINE_VALUE + phaseIZ);
-  int IZ = (valueIZ == 0) ? 0 : valueIZ * scalingFactor;
+  Z = pgm_read_word_near(SINE_VALUE + phaseZ);
+  if(Z != 0)
+  {
+    Z = Z * scalingFactor;
+    IZ = 0;
+  }else{//Z == 0
+    IZ = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseZ + 128);
+  }
   
   switch(mode)
   {
