@@ -108,7 +108,7 @@ void setup()
   
 void loop(){
   //Frequency
-  inputFreq = 140.0 * analogRead(VOLT_PIN)/1023.0 + 10;
+  inputFreq = 140.0 * analogRead(FREQ_PIN)/1023.0 + 10;
   changeFreq(inputFreq);
   setFrequency_LCD(freq);
 
