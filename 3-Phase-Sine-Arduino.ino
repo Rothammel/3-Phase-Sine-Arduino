@@ -20,22 +20,26 @@ PROGMEM const unsigned short SINE_VALUE[]  = {0,25,50,75,100,125,150,175,200,224
 #define FREQ_PIN          7
 #define CURR_PIN          0
 
-//Digital Pin
-#define LATCHUP_PIN       16
+//Digital Pin(Output)
+//#define LATCHUP_PIN       16
 #define X_PIN             5
 #define IX_PIN            2
 #define Y_PIN             3
 #define IY_PIN            6
 #define Z_PIN             7
 #define IZ_PIN            8
+
+//Digital Pin(Input)
 #define HALF_WAVE_PIN     30
 #define FULL_WAVE_PIN     32
 #define THREE_PHASE_PIN   34
+#define FAULT_TRIGGER     26
 
 const int HALF_WAVE    = 0;
 const int FULL_WAVE    = 1;
 const int THREE_PHASE  = 2;
 const int FAULT        = 3;
+const int FAULT_NEG    = 4;
 const int INITIALIZE   = 5;
 
 
@@ -47,12 +51,12 @@ int lastMode      = THREE_PHASE;
 
 volatile float scalingFactor = 1;
 
-volatile unsigned short X;
-volatile unsigned short IX;
-volatile unsigned short Y;
-volatile unsigned short IY;
-volatile unsigned short Z;
-volatile unsigned short IZ;
+volatile uint16_t X;
+volatile uint16_t IX;
+volatile uint16_t Y;
+volatile uint16_t IY;
+volatile uint16_t Z;
+volatile uint16_t IZ;
 
 int inputFreq = 50;
 
@@ -92,9 +96,16 @@ void setup()
   
   //Initialize by latching up
   setMode_LCD(INITIALIZE); //Show Press Button to Start
-  digitalWrite(LATCHUP_PIN, HIGH);
-  delay(5000);
-  digitalWrite(LATCHUP_PIN, LOW);
+  //digitalWrite(LATCHUP_PIN, HIGH);
+  for(int i = 0; i < 60; i++)
+  {
+    if(digitalRead(FAULT_TRIGGER))
+    {
+      break;
+    }
+    delay(100);
+  }
+  //digitalWrite(LATCHUP_PIN, LOW);
 
   Setup_Timer5();
   Setup_Timer3();
@@ -137,21 +148,30 @@ void loop(){
   float currentRead = (analogRead(CURR_PIN)-511) * 5 /1023/0.0645;
   setCurrent_LCD(currentRead);
 
-  //Mode
+  //Fault or Not
   if(analogRead(FAULT_PIN) > 768){
     mode = FAULT;
-  }else if(digitalRead(HALF_WAVE_PIN)){
-    mode = HALF_WAVE;
-    lastMode = HALF_WAVE;
-  }else if(digitalRead(FULL_WAVE_PIN)){
-    mode = FULL_WAVE;
-    lastMode = FULL_WAVE;
-  }else if(digitalRead(THREE_PHASE_PIN)){
-    mode = THREE_PHASE;
-    lastMode = THREE_PHASE;
-  }else
-    mode = lastMode;
-    
+  }else if(mode == FAULT || mode == FAULT_NEG){
+    mode = FAULT_NEG;
+    if(digitalRead(FAULT_TRIGGER)){
+      mode = lastMode;
+    }
+  }
+
+  //Half, Full or 3 Phase
+  if(mode != FAULT && mode != FAULT_NEG){
+    if(digitalRead(HALF_WAVE_PIN)){
+      mode = HALF_WAVE;
+      lastMode = HALF_WAVE;
+    }else if(digitalRead(FULL_WAVE_PIN)){
+      mode = FULL_WAVE;
+      lastMode = FULL_WAVE;
+    }else if(digitalRead(THREE_PHASE_PIN)){
+      mode = THREE_PHASE;
+      lastMode = THREE_PHASE;
+    }else
+      mode = lastMode;
+  }
   setMode_LCD(mode);
 
   //Debuging Purpose
@@ -161,12 +181,12 @@ void loop(){
   Serial.println(inputFreq);
   Serial.print("Mode : ");
   Serial.println(mode);
-  Serial.print("X, Y, Z : ");
+  /*Serial.print("X, Y, Z : ");
   Serial.print(X);
   Serial.print(", ");
   Serial.print(Y);
   Serial.print(", ");
-  Serial.println(Z);
+  Serial.println(Z);*/
   delay(50);
 }
 
@@ -192,6 +212,11 @@ void setMode_LCD(int mode) {
     case FAULT:
     {
       lcd.print("FAULT        ");
+      break;
+    }
+    case FAULT_NEG:
+    {
+      lcd.print("FAULT*       ");
       break;
     }
     default:
@@ -309,8 +334,9 @@ ISR(TIMER5_OVF_vect) {
   {
     X = X * scalingFactor;
     IX = 0;
-  }else{//X == 0
-    IX = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseX + 128);
+  }else{
+    phaseIX = phaseX + 128;
+    IX = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseIX);
   }
   
   phaseY = phaseX + 85 ;
@@ -320,7 +346,8 @@ ISR(TIMER5_OVF_vect) {
     Y = Y * scalingFactor;
     IY = 0;
   }else{//Y == 0
-    IY = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseY + 128);
+    phaseIY = phaseY + 128;
+    IY = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseIY);
   }
   
   phaseZ = phaseX + 170;
@@ -330,7 +357,8 @@ ISR(TIMER5_OVF_vect) {
     Z = Z * scalingFactor;
     IZ = 0;
   }else{//Z == 0
-    IZ = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseZ + 128);
+    phaseIZ = phaseZ + 128;
+    IZ = scalingFactor * pgm_read_word_near(SINE_VALUE + phaseIZ);
   }
   
   switch(mode)
