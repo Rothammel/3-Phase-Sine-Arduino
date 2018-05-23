@@ -113,7 +113,7 @@ void loop(){
   setFrequency_LCD(freq);
 
   //Voltage
-  scalingFactor = (mode == FAULT) ? 0 : analogRead(FREQ_PIN)/1023.0;
+  scalingFactor = (mode == FAULT) ? 0 : analogRead(VOLT_PIN)/1023.0;
   
   switch(mode){
     case HALF_WAVE:
