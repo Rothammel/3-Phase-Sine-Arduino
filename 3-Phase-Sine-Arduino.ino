@@ -97,13 +97,13 @@ void setup()
   //Initialize by latching up
   setMode_LCD(INITIALIZE); //Show Press Button to Start
   //digitalWrite(LATCHUP_PIN, HIGH);
-  for(int i = 0; i < 60; i++)
+  while(true)
   {
     if(digitalRead(FAULT_TRIGGER))
     {
       break;
     }
-    delay(100);
+    delay(50);
   }
   //digitalWrite(LATCHUP_PIN, LOW);
 
