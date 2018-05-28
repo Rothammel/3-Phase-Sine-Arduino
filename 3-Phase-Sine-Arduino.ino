@@ -35,6 +35,8 @@ PROGMEM const unsigned short SINE_VALUE[]  = {0,25,50,75,100,125,150,175,200,224
 #define THREE_PHASE_PIN   34
 #define FAULT_TRIGGER     26
 
+const int FAULT_THRESHOLD = 768;
+
 const int HALF_WAVE    = 0;
 const int FULL_WAVE    = 1;
 const int THREE_PHASE  = 2;
@@ -149,7 +151,7 @@ void loop(){
   setCurrent_LCD(currentRead);
 
   //Fault or Not
-  if(analogRead(FAULT_PIN) > 768){
+  if(analogRead(FAULT_PIN) > FAULT_THRESHOLD){
     mode = FAULT;
   }else if(mode == FAULT || mode == FAULT_NEG){
     mode = FAULT_NEG;
