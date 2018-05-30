@@ -33,16 +33,16 @@ PROGMEM const unsigned short SINE_VALUE[]  = {0,25,50,75,100,125,150,175,200,224
 #define HALF_WAVE_PIN     30
 #define FULL_WAVE_PIN     32
 #define THREE_PHASE_PIN   34
-#define FAULT_TRIGGER     26
+//#define FAULT_TRIGGER     26
 
 const int FAULT_THRESHOLD = 768;
 
-const int INITIALIZE   = 0;
-const int HALF_WAVE    = 1;
-const int FULL_WAVE    = 2;
-const int THREE_PHASE  = 3;
-const int FAULT        = 5;
-
+const int HALF_WAVE    = 0;
+const int FULL_WAVE    = 1;
+const int THREE_PHASE  = 2;
+const int FAULT        = 3;
+//const int FAULT_NEG    = 4;
+const int INITIALIZE   = 5;
 
 
 volatile int mode = INITIALIZE;
@@ -99,14 +99,16 @@ void setup()
   //Initialize by latching up
   setMode_LCD(INITIALIZE); //Show Press Button to Start
   //digitalWrite(LATCHUP_PIN, HIGH);
+  /*
   while(true)
   {
-    if(analogRead(FAULT_PIN) < FAULT_THRESHOLD)
+    if(analogRead(FAULT_PIN) > FAULT_THRESHOLD)
     {
       break;
     }
     delay(50);
   }
+  */
   //digitalWrite(LATCHUP_PIN, LOW);
 
   Setup_Timer5();
@@ -153,12 +155,15 @@ void loop(){
   //Fault or Not
   if(analogRead(FAULT_PIN) > FAULT_THRESHOLD){
     mode = FAULT;
-  }else
-    mode = lastMode;
-  }
+  }else/* if(mode == FAULT || mode == FAULT_NEG){
+    mode = FAULT_NEG;
+    if(digitalRead(FAULT_TRIGGER)){
+      mode = lastMode;
+    }*/
+      mode = lastMode;
 
   //Half, Full or 3 Phase
-  if(mode != FAULT){
+  if(mode != FAULT/* && mode != FAULT_NEG*/){
     if(digitalRead(HALF_WAVE_PIN)){
       mode = HALF_WAVE;
       lastMode = HALF_WAVE;
@@ -212,6 +217,11 @@ void setMode_LCD(int mode) {
       lcd.print("FAULT        ");
       break;
     }
+    /*case FAULT_NEG:
+    {
+      lcd.print("FAULT*       ");
+      break;
+    }*/
     default:
     {
       lcd.print("Press Button");
