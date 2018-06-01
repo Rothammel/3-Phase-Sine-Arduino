@@ -402,32 +402,32 @@ ISR(TIMER5_OVF_vect) {
   {
     case HALF_WAVE:
     {
-      OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX; // pwm pin 2
-      OCR3C=1023;  // pwm pin 3
-      OCR4A=1023;  // pwm pin 6
-      OCR4B=1023;  // pwm pin 7
+      OCR4A=1023 - X;  // pwm pin 6
+      OCR4B=1023 - IX; // pwm pin 7
       OCR4C=1023;  // pwm pin 8
+      OCR3A=1023;  // pwm pin 5
+      OCR3B=1023;  // pwm pin 2
+      OCR3C=1023;  // pwm pin 3
       break;
     }
     case FULL_WAVE:
     {
-      OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
-      OCR3C=1023 - X;  // pwm pin 3
-      OCR4A=1023 - IX;  // pwm pin 6
-      OCR4B=1023;  // pwm pin 7
-      OCR4C=1023;  // pwm pin 8
+      OCR4A=1023 - X;  // pwm pin 6
+      OCR4B=1023 - IX;  // pwm pin 7
+      OCR4C=1023 - X;  // pwm pin 8
+      OCR3A=1023 - IX;  // pwm pin 5
+      OCR3B=1023;  // pwm pin 2
+      OCR3C=1023;  // pwm pin 3
       break;
     }
     case THREE_PHASE:
     {
-      OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
-      OCR3C=1023 - Y;  // pwm pin 3
-      OCR4A=1023 - IY;  // pwm pin 6
-      OCR4B=1023 - Z;  // pwm pin 7
-      OCR4C=1023 - IZ;  // pwm pin 8
+      OCR4A=1023 - X;  // pwm pin 6
+      OCR4B=1023 - IX;  // pwm pin 7
+      OCR4C=1023 - Y;  // pwm pin 8
+      OCR3A=1023 - IY;  // pwm pin 5
+      OCR3B=1023 - Z;  // pwm pin 2
+      OCR3C=1023 - IZ;  // pwm pin 3
       break;
     }
     default:
