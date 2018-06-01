@@ -29,6 +29,11 @@ PROGMEM const unsigned short SINE_VALUE[]  = {0,25,50,75,100,125,150,175,200,224
 #define Z_PIN             7
 #define IZ_PIN            8
 
+//Using Timer5 as Spare pins
+#define SPARE_PIN1        44
+#define SPARE_PIN2        45
+#define SPARE_PIN3        46
+
 //Digital Pin(Input)
 #define HALF_WAVE_PIN     30
 #define FULL_WAVE_PIN     32
@@ -91,6 +96,10 @@ void setup()
   pinMode(Z_PIN, OUTPUT);
   pinMode(IZ_PIN, OUTPUT);
 
+  pinMode(SPARE_PIN1, OUTPUT);
+  pinMode(SPARE_PIN2, OUTPUT);
+  pinMode(SPARE_PIN3, OUTPUT);
+
   //Mode Pin
   pinMode(HALF_WAVE_PIN, INPUT); //Half wave
   pinMode(FULL_WAVE_PIN, INPUT); //Full wave
@@ -99,7 +108,7 @@ void setup()
   //Initialize by latching up
   setMode_LCD(INITIALIZE); //Show Press Button to Start
   //digitalWrite(LATCHUP_PIN, HIGH);
-  /*
+  
   while(true)
   {
     if(analogRead(FAULT_PIN) > FAULT_THRESHOLD)
@@ -108,7 +117,7 @@ void setup()
     }
     delay(50);
   }
-  */
+  
   //digitalWrite(LATCHUP_PIN, LOW);
 
   Setup_Timer5();
@@ -270,6 +279,13 @@ void Setup_Timer5() {
   sbi (TCCR5B, CS50);
   cbi (TCCR5B, CS51);
   cbi (TCCR5B, CS52);
+
+  sbi (TCCR5A, COM5A0);  //Set OC5A on Compare Match, PWM pin 44
+  sbi (TCCR5A, COM5A1);
+  sbi (TCCR5A, COM5B0);  //Set OC5B on Compare Match, PWM pin 45
+  sbi (TCCR5A, COM5B1);
+  sbi (TCCR5A, COM5C0);  //Set OC5C on Compare Match, PWM pin 46
+  sbi (TCCR5A, COM5C1);
   
   //Mode 3, 10 Bit Phase Correct PWM
   sbi (TCCR5A, WGM50);   
@@ -327,7 +343,15 @@ void Setup_Timer4() {
 ISR(TIMER5_OVF_vect) {
   //use global variable with interrupt -> use volatile variable
   //float _scalingFactor = scalingFactor; //For optimization purpose because volatile variable would be load every time
-  
+  /*
+  Spare Parts: Timer 5
+  OCR5A: Pin 44
+  OCR5B: Pin 45
+  OCR5C: Pin 46
+
+  USE Pin 45 for Hotfix
+  */
+
   sigma = sigma + delta; // soft DDS, phase accu with 32 bits
 
   //Check whether it's 0 or not before multiplication which could reduce the code computing complexity. 
@@ -369,7 +393,8 @@ ISR(TIMER5_OVF_vect) {
     case HALF_WAVE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
+      //OCR3B=1023 - IX;  // pwm pin 2
+      OCR5B=1023 - IX;  // pwm pin 45
       OCR3C=1023;  // pwm pin 3
       OCR4A=1023;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
@@ -379,7 +404,8 @@ ISR(TIMER5_OVF_vect) {
     case FULL_WAVE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
+      //OCR3B=1023 - IX;  // pwm pin 2
+      OCR5B=1023 - IX;  // pwm pin 45
       OCR3C=1023 - X;  // pwm pin 3
       OCR4A=1023 - IX;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
@@ -389,7 +415,8 @@ ISR(TIMER5_OVF_vect) {
     case THREE_PHASE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
+      //OCR3B=1023 - IX;  // pwm pin 2
+      OCR5B=1023 - IX;  // pwm pin 45
       OCR3C=1023 - Y;  // pwm pin 3
       OCR4A=1023 - IY;  // pwm pin 6
       OCR4B=1023 - Z;  // pwm pin 7
@@ -399,7 +426,8 @@ ISR(TIMER5_OVF_vect) {
     default:
     {
       OCR3A=1023;  // pwm pin 5
-      OCR3B=1023;  // pwm pin 2
+      //OCR3B=1023 - IX;  // pwm pin 2
+      OCR5B=1023;   // pwm pin 45
       OCR3C=1023;  // pwm pin 3
       OCR4A=1023;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
