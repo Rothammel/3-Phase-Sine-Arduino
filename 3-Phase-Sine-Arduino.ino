@@ -120,9 +120,19 @@ void setup()
   
   //digitalWrite(LATCHUP_PIN, LOW);
 
+  GTCCR = (1<<TSM)|(1<<PSRSYNC); //Halt Syncronous Timers
+
   Setup_Timer5();
   Setup_Timer3();
   Setup_Timer4();
+  TCNT5H = 0;
+  TCNT5L = 0;
+  TCNT3H = 0;
+  TCNT3L = 0;
+  TCNT4H = 0;
+  TCNT4L = 0;
+
+  GTCCR = 0; //Release All Timers
 }
 
 // the waveform index is the highest 8 bits of sigma
@@ -393,8 +403,7 @@ ISR(TIMER5_OVF_vect) {
     case HALF_WAVE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      //OCR3B=1023 - IX;  // pwm pin 2
-      OCR5B=1023 - IX;  // pwm pin 45
+      OCR3B=1023 - IX; // pwm pin 2
       OCR3C=1023;  // pwm pin 3
       OCR4A=1023;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
@@ -404,8 +413,7 @@ ISR(TIMER5_OVF_vect) {
     case FULL_WAVE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      //OCR3B=1023 - IX;  // pwm pin 2
-      OCR5B=1023 - IX;  // pwm pin 45
+      OCR3B=1023 - IX;  // pwm pin 2
       OCR3C=1023 - X;  // pwm pin 3
       OCR4A=1023 - IX;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
@@ -415,8 +423,7 @@ ISR(TIMER5_OVF_vect) {
     case THREE_PHASE:
     {
       OCR3A=1023 - X;  // pwm pin 5
-      //OCR3B=1023 - IX;  // pwm pin 2
-      OCR5B=1023 - IX;  // pwm pin 45
+      OCR3B=1023 - IX;  // pwm pin 2
       OCR3C=1023 - Y;  // pwm pin 3
       OCR4A=1023 - IY;  // pwm pin 6
       OCR4B=1023 - Z;  // pwm pin 7
@@ -426,8 +433,7 @@ ISR(TIMER5_OVF_vect) {
     default:
     {
       OCR3A=1023;  // pwm pin 5
-      //OCR3B=1023 - IX;  // pwm pin 2
-      OCR5B=1023;   // pwm pin 45
+      OCR3B=1023;  // pwm pin 2
       OCR3C=1023;  // pwm pin 3
       OCR4A=1023;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
