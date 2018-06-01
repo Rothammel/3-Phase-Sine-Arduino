@@ -413,8 +413,8 @@ ISR(TIMER5_OVF_vect) {
     }
     case FULL_WAVE:
     {
-      OCR3A=1023 - IX;  // pwm pin 5
-      OCR3B=1023 - X;  // pwm pin 2
+      OCR3A=1023 - X;  // pwm pin 5
+      OCR3B=1023 - IX;  // pwm pin 2
       OCR3C=1023 - X;  // pwm pin 3
       OCR4A=1023 - IX;  // pwm pin 6
       OCR4B=1023;  // pwm pin 7
