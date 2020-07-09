@@ -30,6 +30,7 @@ PROGMEM const unsigned short SINE_Z[]  = {889,876,863,849,835,820,805,789,773,75
 volatile float scalingFactorX = 1;
 volatile float scalingFactorY = 1;
 volatile float scalingFactorZ = 1;
+float lastScalingFactorX;
 
 volatile uint16_t X;
 volatile uint16_t IX;
@@ -90,8 +91,14 @@ void setup()
 void loop(){
   //Frequency
   changeFreq(50);
-  if(WertA0 < 440 && scalingFactorY < 1.3) scalingFactorX += 0.005;
-  if(WertA0 > 445 && scalingFactorY > 0.8) scalingFactorX -= 0.005;
+  if(WertA0 < 440 && scalingFactorX < 1.3) scalingFactorX += 0.005;
+  if(WertA0 > 445 && scalingFactorX > 0.8) scalingFactorX -= 0.005;
+  if(scalingFactorX != lastScalingFactorX)
+  {
+    Serial.println(scalingFactorX);
+    lastScalingFactorX = scalingFactorX;
+  }
+  
   delay(50);
 }
 
@@ -205,27 +212,33 @@ ISR(TIMER5_OVF_vect) {
       }
     }
     X = X * scalingFactorX;
+    if(X > 1023) X = 1023;
     IX = 0;
   }else{
     IX = scalingFactorX * pgm_read_word_near(SINE_X + phaseI);
+    if(IX > 1023) IX = 1023;
   }
   
   Y = pgm_read_word_near(SINE_Y + phase);
   if(Y != 0)
   {
     Y = Y * scalingFactorY;
+    if(Y > 1023) Y = 1023;
     IY = 0;
   }else{//Y == 0
     IY = scalingFactorY * pgm_read_word_near(SINE_Y + phaseI);
+    if(IY > 1023) IY = 1023;
   }
   
   Z = pgm_read_word_near(SINE_Z + phase);
   if(Z != 0)
   {
     Z = Z * scalingFactorZ;
+    if(Z > 1023) Z = 1023;
     IZ = 0;
   }else{//Z == 0
     IZ = scalingFactorZ * pgm_read_word_near(SINE_Z + phaseI);
+    if(IZ > 1023) IZ = 1023;
   }
   
   OCR3A=1023 - IX;  // pwm pin 5
