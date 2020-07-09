@@ -1,6 +1,3 @@
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
-
 // 3 Phase PWM sine
 // (c) 2018 Norawit Nangsue
 // Fixed comments from
@@ -17,14 +14,7 @@ PROGMEM const unsigned short SINE_Z[]  = {889,876,863,849,835,820,805,789,773,75
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-//Analog Pin
-#define FAULT_PIN         2
-#define VOLT_PIN          5
-#define FREQ_PIN          7
-#define CURR_PIN          0
-
 //Digital Pin(Output)
-//#define LATCHUP_PIN       16
 #define X_PIN             5
 #define IX_PIN            2
 #define Y_PIN             3
@@ -37,29 +27,9 @@ PROGMEM const unsigned short SINE_Z[]  = {889,876,863,849,835,820,805,789,773,75
 #define SPARE_PIN2        45
 #define SPARE_PIN3        46
 
-//Digital Pin(Input)
-#define HALF_WAVE_PIN     30
-#define FULL_WAVE_PIN     32
-#define THREE_PHASE_PIN   34
-//#define FAULT_TRIGGER     26
-
-const int FAULT_THRESHOLD = 768;
-
-const int HALF_WAVE    = 0;
-const int FULL_WAVE    = 1;
-const int THREE_PHASE  = 2;
-const int FAULT        = 3;
-//const int FAULT_NEG    = 4;
-const int INITIALIZE   = 5;
-
-
-volatile int mode = INITIALIZE;
-
-//For fault handling
-int lastMode      = THREE_PHASE;
-
-
-volatile float scalingFactor = 1;
+volatile float scalingFactorX = 1;
+volatile float scalingFactorY = 1;
+volatile float scalingFactorZ = 1;
 
 volatile uint16_t X;
 volatile uint16_t IX;
@@ -67,8 +37,6 @@ volatile uint16_t Y;
 volatile uint16_t IY;
 volatile uint16_t Z;
 volatile uint16_t IZ;
-
-int inputFreq = 50;
 
 float currentRead = 0;
 
@@ -79,18 +47,16 @@ const float refclk = 30.547  ;     //16 MHz/1023/2/256
 //Variables used inside interrupt service declared as voilatile
 volatile unsigned long sigma;  // Phase Accumulator
 volatile unsigned long delta;  // Phase Increment
-//byte phaseX, phaseY, phaseZ, phaseIX, phaseIY, phaseIZ;
+volatile int WerteA0;
+volatile int WertA0;
+volatile byte Anzahl;
 byte phase, phaseI;
 
-LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("DDS Test");
-
-  lcd.begin();
-  lcd.backlight();
 
   //PWM Pin
   pinMode(X_PIN, OUTPUT);
@@ -99,30 +65,7 @@ void setup()
   pinMode(IY_PIN, OUTPUT);
   pinMode(Z_PIN, OUTPUT);
   pinMode(IZ_PIN, OUTPUT);
-
-  pinMode(SPARE_PIN1, OUTPUT);
-  pinMode(SPARE_PIN2, OUTPUT);
-  pinMode(SPARE_PIN3, OUTPUT);
-
-  //Mode Pin
-  pinMode(HALF_WAVE_PIN, INPUT); //Half wave
-  pinMode(FULL_WAVE_PIN, INPUT); //Full wave
-  pinMode(THREE_PHASE_PIN, INPUT); //3 phase
   
-  //Initialize by latching up
-  setMode_LCD(INITIALIZE); //Show Press Button to Start
-  //digitalWrite(LATCHUP_PIN, HIGH);
-  
-  while(true)
-  {
-    if(analogRead(FAULT_PIN) > FAULT_THRESHOLD)
-    {
-      break;
-    }
-    delay(50);
-  }
-  
-  //digitalWrite(LATCHUP_PIN, LOW);
 
   GTCCR = (1<<TSM)|(1<<PSRSYNC); //Halt Syncronous Timers
 
@@ -146,136 +89,11 @@ void setup()
   
 void loop(){
   //Frequency
-  inputFreq = 140.0 * analogRead(FREQ_PIN)/1023.0 + 10;
-  changeFreq(inputFreq);
-  setFrequency_LCD(freq);
-
-  //Voltage
-  scalingFactor = (mode == FAULT) ? 0 : analogRead(VOLT_PIN)/1023.0;
-  
-  switch(mode){
-    case HALF_WAVE:
-    {
-      setVoltage_LCD(scalingFactor * 199.18);
-      break;
-    }
-    case FULL_WAVE:
-    {
-      setVoltage_LCD(scalingFactor * 398.37);
-      break;
-    }
-    case THREE_PHASE:
-    {
-      setVoltage_LCD(scalingFactor * 199.18);
-      break;
-    }
-  }
-  
-  //Measured Current
-  float currentRead = (analogRead(CURR_PIN)-511) * 5 /1023/0.0645;
-  setCurrent_LCD(currentRead);
-
-  //Fault or Not
-  if(analogRead(FAULT_PIN) > FAULT_THRESHOLD){
-    mode = FAULT;
-  }else/* if(mode == FAULT || mode == FAULT_NEG){
-    mode = FAULT_NEG;
-    if(digitalRead(FAULT_TRIGGER)){
-      mode = lastMode;
-    }*/
-      mode = lastMode;
-
-  //Half, Full or 3 Phase
-  if(mode != FAULT/* && mode != FAULT_NEG*/){
-    if(digitalRead(HALF_WAVE_PIN)){
-      mode = HALF_WAVE;
-      lastMode = HALF_WAVE;
-    }else if(digitalRead(FULL_WAVE_PIN)){
-      mode = FULL_WAVE;
-      lastMode = FULL_WAVE;
-    }else if(digitalRead(THREE_PHASE_PIN)){
-      mode = THREE_PHASE;
-      lastMode = THREE_PHASE;
-    }
-  }
-  setMode_LCD(mode);
-
-  //Debuging Purpose
-  Serial.print("Voltage Level : ");
-  Serial.println(scalingFactor);
-  Serial.print("Frequency : ");
-  Serial.println(inputFreq);
-  Serial.print("Mode : ");
-  Serial.println(mode);
-  /*Serial.print("X, Y, Z : ");
-  Serial.print(X);
-  Serial.print(", ");
-  Serial.print(Y);
-  Serial.print(", ");
-  Serial.println(Z);*/
+  changeFreq(50);
+  if(WertA0 < 440 && scalingFactorY < 1.3) scalingFactorX += 0.005;
+  if(WertA0 > 445 && scalingFactorY > 0.8) scalingFactorX -= 0.005;
   delay(50);
 }
-
-
-void setMode_LCD(int mode) {
-  lcd.setCursor(0, 0);
-  switch(mode){
-    case HALF_WAVE:
-    {
-      lcd.print("Mode: Half Wave   ");
-      break;
-    }
-    case FULL_WAVE:
-    {
-      lcd.print("Mode: Full Wave   ");
-      break;
-    }
-    case THREE_PHASE:
-    {
-      lcd.print("Mode: 3 Phase    ");
-      break;
-    }
-    case FAULT:
-    {
-      lcd.print("FAULT        ");
-      break;
-    }
-    /*case FAULT_NEG:
-    {
-      lcd.print("FAULT*       ");
-      break;
-    }*/
-    default:
-    {
-      lcd.print("Press Button");
-      lcd.setCursor(0, 1);
-      lcd.print("to Start");
-      break;
-    }
-  }
-}
-
-void setVoltage_LCD(float voltage){
-  lcd.setCursor(0, 1);
-  lcd.print("Voltage: ");
-  lcd.print(String(voltage, 2));
-  lcd.print(" V   ");
-}
-
-void setCurrent_LCD(float current){
-  lcd.setCursor(0, 2);
-  lcd.print("Current: ");
-  lcd.print(String(current, 2));
-  lcd.print(" mA  ");
-}
-
-void setFrequency_LCD(int freq){
-  lcd.setCursor(0, 3);
-  lcd.print("Frequency: ");
-  lcd.print(String(freq));
-  lcd.print(" Hz  ");
-}
-
 
 
 void changeFreq(float _freq){
@@ -375,71 +193,45 @@ ISR(TIMER5_OVF_vect) {
   X = pgm_read_word_near(SINE_X + phase);
   if(X != 0)
   {
-    X = X * scalingFactor;
+    if(X == 75)
+    {
+      WerteA0 += analogRead(0);
+      Anzahl ++;
+      if(Anzahl > 10)
+      {
+        WertA0 = WerteA0 / 10;
+        Anzahl = 0;
+        WerteA0 = 0;
+      }
+    }
+    X = X * scalingFactorX;
     IX = 0;
   }else{
-    IX = scalingFactor * pgm_read_word_near(SINE_X + phaseI);
+    IX = scalingFactorX * pgm_read_word_near(SINE_X + phaseI);
   }
   
   Y = pgm_read_word_near(SINE_Y + phase);
   if(Y != 0)
   {
-    Y = Y * scalingFactor;
+    Y = Y * scalingFactorY;
     IY = 0;
   }else{//Y == 0
-    IY = scalingFactor * pgm_read_word_near(SINE_Y + phaseI);
+    IY = scalingFactorY * pgm_read_word_near(SINE_Y + phaseI);
   }
   
   Z = pgm_read_word_near(SINE_Z + phase);
   if(Z != 0)
   {
-    Z = Z * scalingFactor;
+    Z = Z * scalingFactorZ;
     IZ = 0;
   }else{//Z == 0
-    IZ = scalingFactor * pgm_read_word_near(SINE_Z + phaseI);
+    IZ = scalingFactorZ * pgm_read_word_near(SINE_Z + phaseI);
   }
   
-  switch(mode)
-  {
-    case HALF_WAVE:
-    {
-      OCR3A=1023 - IX;  // pwm pin 5
-      OCR3B=1023 - X; // pwm pin 2
-      OCR3C=1023;  // pwm pin 3
-      OCR4A=1023;  // pwm pin 6
-      OCR4B=1023;  // pwm pin 7
-      OCR4C=1023;  // pwm pin 8
-      break;
-    }
-    case FULL_WAVE:
-    {
-      OCR3A=1023 - X;  // pwm pin 5
-      OCR3B=1023 - IX;  // pwm pin 2
-      OCR3C=1023 - X;  // pwm pin 3
-      OCR4A=1023 - IX;  // pwm pin 6
-      OCR4B=1023;  // pwm pin 7
-      OCR4C=1023;  // pwm pin 8
-      break;
-    }
-    case THREE_PHASE:
-    {
-      OCR3A=1023 - IX;  // pwm pin 5
-      OCR3B=1023 - X;  // pwm pin 2
-      OCR3C=1023 - Y;  // pwm pin 3
-      OCR4A=1023 - IY;  // pwm pin 6
-      OCR4B=1023 - Z;  // pwm pin 7
-      OCR4C=1023 - IZ;  // pwm pin 8
-      break;
-    }
-    default:
-    {
-      OCR4A=1023;  // pwm pin 6
-      OCR4B=1023;  // pwm pin 7
-      OCR4C=1023;  // pwm pin 8
-      OCR3A=1023;  // pwm pin 5
-      OCR3B=1023;  // pwm pin 2
-      OCR3C=1023;  // pwm pin 3
-      break;
-    }
-  }
+  OCR3A=1023 - IX;  // pwm pin 5
+  OCR3B=1023 - X;   // pwm pin 2
+  OCR3C=1023 - Y;   // pwm pin 3
+  OCR4A=1023 - IY;  // pwm pin 6
+  OCR4B=1023 - Z;   // pwm pin 7
+  OCR4C=1023 - IZ;  // pwm pin 8
 }
